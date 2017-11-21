@@ -1,0 +1,288 @@
+<?php namespace ProcessWire;
+
+
+class PulsewayPush extends WireData implements ConfigurableModule, Module {
+
+    public static function getModuleInfo() {
+        return array(
+            'title'     => 'PulsewayPush',
+            'summary'   => 'Send push from ProcessWire to Pulseway.',
+            'version'   => '0.0.1',
+            'icon'      => 'bell',
+            'author'    => 'flydev',
+            'href'      => 'https://processwire.com/',
+            'autoload'  => false
+        );
+    }
+
+    protected static $defaultSettings = [
+        'username'           => '',
+        'password'           => '',
+        'endpoint'           => '',
+        'new_instance_id'    => '',
+        'new_instance_name'  => '',
+        'new_instance_group' => '',
+        'instance_id'        => '',
+        'instance_name'      => '',
+        'instance_group'     => '',
+    ];
+
+    public function __construct() {
+        $this->setArray(self::$defaultSettings);
+    }
+
+    protected function save() {
+        // get stored data
+        $data = wire('modules')->getModuleConfigData($this);
+        // populate stored data array with the current data
+        foreach($data as $name => $value)
+            $data[$name] = $this->$name;
+        // save config data
+        wire('modules')->saveConfig($this, $data);
+
+        return $data; // or return true or whatever you like
+    }
+
+    public function init() {
+        $this->addHookAfter("Inputfield::render", $this, "populateWebAppFields");
+
+        if(isset($this->input->post->submit_publish)) {
+            $this->set('new_instance_id', 'rest');
+            $this->set('new_instance_name',  $this->input->post->new_instance_name);
+            $this->set('new_instance_group', $this->input->post->new_instance_group);
+            $this->set('new_instance_desc',  $this->input->post->new_instance_desc);
+            $this->save();
+            $this->publish();
+        }
+    }
+
+    protected function populateWebAppFields(HookEvent $event) {
+        $field = $event->object;
+
+        if(($field->name == 'instance_id')) {
+            $field->set('value', $this->new_instance_id);
+        }
+        if(($field->name == 'instance_name')) {
+            $field->set('value', $this->new_instance_name);
+        }
+        if(($field->name == 'instance_group')) {
+            $field->set('value', $this->new_instance_group);
+        }
+
+        $this->save();
+    }
+
+    /**
+     * Register or update an instance
+     * @return array|bool|string
+     */
+    protected function publish() {
+        $options = array(
+            'object' => 'systems'
+        );
+
+        $publishRequest = array(
+            "instance_id" => $this->new_instance_id,
+            "name"        => $this->new_instance_name,
+            "group"       => $this->new_instance_group,
+            "description" => $this->new_instance_desc
+        );
+        $publishResponse = null;
+
+        try {
+            $publishResponse = $this->request($options, $publishRequest);
+            $data = json_decode($publishResponse);
+            $this->set('instance_id', $data->data->identifier);
+            $this->set('instance_name', $this->new_instance_name);
+            $this->set('instance_group', $this->new_instance_group);
+            $this->save();
+        }
+        catch (\Exception $e) {
+            $this->log("'Publish' exception: {$e->getMessage()}");
+        }
+
+        return $publishResponse;
+    }
+
+    /**
+     * Creates a system notification (send a push).
+     * @param $title
+     * @param $message
+     * @param $priority :  can be "low", "normal", "elevated", "critical"
+     * @return mixed
+     */
+    public function ___push($title, $message, $priority = "normal") {
+        $options = array(
+            'object' => 'notifications'
+        );
+
+        $notifyRequest = array(
+            "instance_id" => $this->instance_id,
+            "title" => $title,
+            "message" => $message,
+            "priority" => $priority
+        );
+
+        try {
+            $publishResponse = $this->request($options, $notifyRequest);
+        }
+        catch (\Exception $e) {
+            $this->log("'Push' exception: " . $e->getMessage());
+        }
+
+        return $publishResponse;
+    }
+
+    /**
+     * Same function as push()
+     * @param $title
+     * @param $message
+     * @param string $priority
+     */
+    public function notify($title, $message, $priority = "normal") {
+        $this->push($title, $message, $priority);
+    }
+
+    /**
+     * Send a POST request to the endpoint
+     * @param $opt
+     * @param $data
+     * @return array|bool|string
+     */
+    protected function request($opt, $data) {
+        $http = new WireHttp();
+        $data_string = json_encode($data);
+        $http->setHeaders(array(
+            'Content-Type' => 'application/json',
+            'Content-Length' => strlen($data_string),
+            'Authorization' => 'Basic ' . base64_encode("{$this->username}:{$this->password}")
+        ));
+        $http->setData($data_string);
+        $response = $http->post($this->endpoint . $opt['object']);
+        if ($response == FALSE) {
+            return $http->getError();
+        }
+        else {
+            return $response;
+        }
+    }
+
+    public static function getModuleConfigInputfields(array $data)
+    {
+        $data = array_merge(self::$defaultSettings, $data);
+        $wrap = new InputfieldWrapper();
+
+        // Account credentials
+        $form = wire('modules')->get('InputfieldFieldset');
+        $form->label = _('Pulseway Credentials');
+        $form->description = _('Your Pulseway credentials.');
+        $form->icon = "user-secret";
+        $form->collapsed = Inputfield::collapsedYes;
+        $inputfields = array(
+            'username'       => __('Username'),
+            'password'       => __('Password'),
+        );
+        foreach($inputfields as $name => $label) {
+            $f = wire('modules')->get('InputfieldText');
+            $f->attr('name', $name);
+            $f->label = $label;
+            $f->required = false;
+            $f->columnWidth = 50;
+            if(isset($data[$name])) $f->attr('value', $data[$name]);
+            $form->add($f);
+        }
+        $wrap->add($form);
+
+        // Pulseway's endpoint
+        $f = wire('modules')->get('InputfieldText');
+        $f->attr('name', 'endpoint');
+        $f->label = _('Pulseway\'s Endpoint');
+        $f->description = _('If you host your own Pulseway Enterprise Server, use “https://your-server-name/api/v2/” as base URL.');
+        (isset($data['endpoint']) || empty($data['endpoint'])) ? $f->attr('value', $data['endpoint']) : 'https://api.pulseway.com/v2/';
+        $f->notes = _('Default endpoint: [https://api.pulseway.com/v2/](https://api.pulseway.com/v2/)');
+        $f->icon = 'link';
+        $f->collapsed = Inputfield::collapsedYes;
+        $wrap->add($f);
+
+        // Publish settings
+        $form = wire('modules')->get('InputfieldFieldset');
+        $form->label = _('Pulseway Publish');
+        $form->description = _('Registers or updates a Pulseway system instance. Once you clicked "Register/update",') . ' '.
+                             _('refresh the page to fill the WebApp settings.');
+        $form->icon = "fire-extinguisher";
+        $form->collapsed = Inputfield::collapsedYes;
+
+        $f = wire('modules')->get('InputfieldHidden');
+        $f->attr('name', 'new_instance_id');
+        if(isset($data['new_instance_id'])) $f->attr('value', $data['new_instance_id']);
+        $form->add($f);
+
+        $inputfields = array(
+            'new_instance_name'  => _('Instance Name'),
+            'new_instance_group' => _('Instance Group'),
+        );
+        foreach($inputfields as $name => $label) {
+            $f = wire('modules')->get('InputfieldText');
+            $f->attr('name', $name);
+            $f->label = $label;
+            $f->required = false;
+            $f->columnWidth = 50;
+            if(isset($data[$name])) $f->attr('value', $data[$name]);
+            $form->add($f);
+        }
+        $f = wire('modules')->get('InputfieldText');
+        $f->attr('name', 'new_instance_desc');
+        $f->label = _('Instance Description');
+        $f->required = false;
+        $f->columnWidth = 100;
+        if(isset($data['new_instance_desc'])) $f->attr('value', $data['new_instance_desc']);
+        $form->add($f);
+
+        $f = wire('modules')->get('InputfieldSubmit');
+        $f->attr('id+name', 'submit_publish');
+        $f->value = _('Register/Update');
+        $form->add($f);
+        $wrap->add($form);
+
+        // WebApp settings
+        $form = wire('modules')->get('InputfieldFieldset');
+        $form->label = _('Pulseway WebApp Settings');
+        $form->description = _('If you already have the WebApp settings in hand, please fill the fields bellow.') . ' ' .
+                             _('If you don\'t have a WepApp, use the "Publish" feature to create one, the fields') . ' ' .
+                             _('will be populated automatically.');
+        $form->notes = _('Manage system(s) there: [https://my.pulseway.com/main/systems](https://my.pulseway.com/main/systems)');
+        $form->icon = "wrench";
+        $form->collapsed = Inputfield::collapsedYes;
+        $inputfields = array(
+            'instance_id'    => _('Instance ID'),
+            'instance_name'  => _('Instance Name'),
+            'instance_group' => _('Instance Group')
+        );
+        foreach($inputfields as $name => $label) {
+            $f = wire('modules')->get('InputfieldText');
+            $f->attr('name', $name);
+            $f->label = $label;
+            $f->columnWidth = 33;
+            if(isset($data[$name])) $f->attr('value', $data[$name]);
+            $form->add($f);
+        }
+        $wrap->add($form);
+
+        $f = wire('modules')->get('InputfieldMarkup');
+        $f->attr('name', '_docs');
+        $f->label = _('How to use');
+        $f->icon = 'life-ring';
+        $f->collapsed = Inputfield::collapsedYes;
+        $f->description = _('Paste the following code when you want to send a push in your module or template file.');
+        $f->value = '<pre><code>&lt;?php $modules->get("PulsewayPush")->push("The title", "The notification message.", "elevated"); ?&gt;</code></pre>';
+        $f->notes = sprintf(
+            _('See the [full documentation](%s) for more details.'),
+            'https://github.com/flydev-fr/PulsewayPush/blob/master/README.md'
+        );
+        $wrap->add($f);
+
+        return $wrap;
+    }
+}
+
+
