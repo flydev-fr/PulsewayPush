@@ -7,7 +7,7 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         return array(
             'title'     => 'PulsewayPush',
             'summary'   => 'Send push from ProcessWire to Pulseway.',
-            'version'   => '0.0.1',
+            'version'   => '0.0.2',
             'icon'      => 'bell',
             'author'    => 'flydev',
             'href'      => 'https://processwire.com/',
@@ -207,8 +207,8 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         // Publish settings
         $form = wire('modules')->get('InputfieldFieldset');
         $form->label = _('Pulseway Publish');
-        $form->description = _('Registers or updates a Pulseway system instance. Once you clicked "Register/update",') . ' '.
-                             _('refresh the page to fill the WebApp settings.');
+        $form->description = _('Registers or updates a Pulseway system instance.');
+        $form->notes = _(' Once you clicked "Register/update", refresh the page to fill the WebApp settings.');
         $form->icon = "fire-extinguisher";
         $form->collapsed = Inputfield::collapsedYes;
 
