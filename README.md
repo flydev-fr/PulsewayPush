@@ -34,4 +34,5 @@ of a client request immediate support. Pulseway was choosen because it is alread
 used to monitor our infrastructure.
 
 - An idea, you could use the free plan to monitor your blog or website regarding the number
-of failed logins attempts (hooking Login/Register?), the automated tool then block the attacker's ip with a firewall rules.
+of failed logins attempts (hooking Login/Register?), the automated tool then block the attacker's ip with a firewall rules
+and send you a notification.
