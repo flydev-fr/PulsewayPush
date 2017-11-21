@@ -139,7 +139,7 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
      * @param $message
      * @param string $priority
      */
-    public function notify($title, $message, $priority = "normal") {
+    public function ___notify($title, $message, $priority = "normal") {
         $this->push($title, $message, $priority);
     }
 
