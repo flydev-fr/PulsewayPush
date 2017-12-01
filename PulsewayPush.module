@@ -7,7 +7,7 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         return array(
             'title'     => 'PulsewayPush',
             'summary'   => 'Send push from ProcessWire to Pulseway.',
-            'version'   => '0.0.2',
+            'version'   => '1.0.0',
             'icon'      => 'bell',
             'author'    => 'flydev',
             'href'      => 'https://processwire.com/',
@@ -174,8 +174,8 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
 
         // Account credentials
         $form = wire('modules')->get('InputfieldFieldset');
-        $form->label = _('Pulseway Credentials');
-        $form->description = _('Your Pulseway credentials.');
+        $form->label = __('Pulseway Credentials');
+        $form->description = __('Your Pulseway credentials.');
         $form->icon = "user-secret";
         $form->collapsed = Inputfield::collapsedYes;
         $inputfields = array(
@@ -196,19 +196,19 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         // Pulseway's endpoint
         $f = wire('modules')->get('InputfieldText');
         $f->attr('name', 'endpoint');
-        $f->label = _('Pulseway\'s Endpoint');
-        $f->description = _('If you host your own Pulseway Enterprise Server, use “https://your-server-name/api/v2/” as base URL.');
+        $f->label = __('Pulseway\'s Endpoint');
+        $f->description = __('If you host your own Pulseway Enterprise Server, use “https://your-server-name/api/v2/” as base URL.');
         (isset($data['endpoint']) || empty($data['endpoint'])) ? $f->attr('value', $data['endpoint']) : 'https://api.pulseway.com/v2/';
-        $f->notes = _('Default endpoint: [https://api.pulseway.com/v2/](https://api.pulseway.com/v2/)');
+        $f->notes = __('Default endpoint: [https://api.pulseway.com/v2/](https://api.pulseway.com/v2/)');
         $f->icon = 'link';
         $f->collapsed = Inputfield::collapsedYes;
         $wrap->add($f);
 
         // Publish settings
         $form = wire('modules')->get('InputfieldFieldset');
-        $form->label = _('Pulseway Publish');
-        $form->description = _('Registers or updates a Pulseway system instance.');
-        $form->notes = _(' Once you clicked "Register/update", refresh the page to fill the WebApp settings.');
+        $form->label = __('Pulseway Publish');
+        $form->description = __('Registers or updates a Pulseway system instance.');
+        $form->notes = __(' Once you clicked "Register/update", refresh the page to fill the WebApp settings.');
         $form->icon = "fire-extinguisher";
         $form->collapsed = Inputfield::collapsedYes;
 
@@ -218,8 +218,8 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         $form->add($f);
 
         $inputfields = array(
-            'new_instance_name'  => _('Instance Name'),
-            'new_instance_group' => _('Instance Group'),
+            'new_instance_name'  => __('Instance Name'),
+            'new_instance_group' => __('Instance Group'),
         );
         foreach($inputfields as $name => $label) {
             $f = wire('modules')->get('InputfieldText');
@@ -232,7 +232,7 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
         }
         $f = wire('modules')->get('InputfieldText');
         $f->attr('name', 'new_instance_desc');
-        $f->label = _('Instance Description');
+        $f->label = __('Instance Description');
         $f->required = false;
         $f->columnWidth = 100;
         if(isset($data['new_instance_desc'])) $f->attr('value', $data['new_instance_desc']);
@@ -240,23 +240,23 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
 
         $f = wire('modules')->get('InputfieldSubmit');
         $f->attr('id+name', 'submit_publish');
-        $f->value = _('Register/Update');
+        $f->value = __('Register/Update');
         $form->add($f);
         $wrap->add($form);
 
         // WebApp settings
         $form = wire('modules')->get('InputfieldFieldset');
-        $form->label = _('Pulseway WebApp Settings');
-        $form->description = _('If you already have the WebApp settings in hand, please fill the fields bellow.') . ' ' .
-                             _('If you don\'t have a WepApp, use the "Publish" feature to create one, the fields') . ' ' .
-                             _('will be populated automatically.');
-        $form->notes = _('Manage system(s) there: [https://my.pulseway.com/main/systems](https://my.pulseway.com/main/systems)');
+        $form->label = __('Pulseway WebApp Settings');
+        $form->description = __('If you already have the WebApp settings in hand, please fill the fields bellow.') . ' ' .
+                             __('If you don\'t have a WepApp, use the "Publish" feature to create one, the fields') . ' ' .
+                             __('will be populated automatically.');
+        $form->notes = __('Manage system(s) there: [https://my.pulseway.com/main/systems](https://my.pulseway.com/main/systems)');
         $form->icon = "wrench";
         $form->collapsed = Inputfield::collapsedYes;
         $inputfields = array(
-            'instance_id'    => _('Instance ID'),
-            'instance_name'  => _('Instance Name'),
-            'instance_group' => _('Instance Group')
+            'instance_id'    => __('Instance ID'),
+            'instance_name'  => __('Instance Name'),
+            'instance_group' => __('Instance Group')
         );
         foreach($inputfields as $name => $label) {
             $f = wire('modules')->get('InputfieldText');
@@ -270,13 +270,13 @@ class PulsewayPush extends WireData implements ConfigurableModule, Module {
 
         $f = wire('modules')->get('InputfieldMarkup');
         $f->attr('name', '_docs');
-        $f->label = _('How to use');
+        $f->label = __('How to use');
         $f->icon = 'life-ring';
         $f->collapsed = Inputfield::collapsedYes;
-        $f->description = _('Paste the following code when you want to send a push in your module or template file.');
+        $f->description = __('Paste the following code when you want to send a push in your module or template file.');
         $f->value = '<pre><code>&lt;?php $modules->get("PulsewayPush")->push("The title", "The notification message.", "elevated"); ?&gt;</code></pre>';
         $f->notes = sprintf(
-            _('See the [full documentation](%s) for more details.'),
+            __('See the [full documentation](%s) for more details.'),
             'https://github.com/flydev-fr/PulsewayPush/blob/master/README.md'
         );
         $wrap->add($f);
